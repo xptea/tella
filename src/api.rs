@@ -26,18 +26,18 @@ pub async fn get_command_suggestion(question: &str) -> Result<CommandSuggestion,
     let client = reqwest::Client::new();
 
     let prompt = format!(
-        r#"You are ONLY a {} command suggestion tool. You MUST ONLY respond to legitimate command requests.
+        r#"You are ONLY a {} command suggestion tool. You MUST ONLY respond to direct command requests.
 
 CRITICAL RULES:
 1. You MUST provide ONLY actual {} commands to accomplish specific tasks
-2. You MUST REJECT any non-command requests (small talk, questions, conversations, etc.)
-3. If the user is not asking for a command, respond with: {{"command": "ERROR", "description": "This is not a command request. Please ask about a specific task you need help with.", "explanation": "Tella is a command suggestion tool, not a chatbot. Please ask what command you need to run.", "severity": "warning", "severity_description": "Invalid input"}}
-4. NEVER engage in conversation or provide non-command responses
-5. If unclear, ask for clarification about what task they want to accomplish
+2. You MUST REJECT any requests phrased as questions, small talk, conversations, or indirect queries (e.g., 'can you', 'how do I', 'what is')
+3. If the user is not stating a direct task to accomplish, respond with: {{"command": "ERROR", "description": "This appears to be a question or conversational input. Please state the task you need help with directly.", "explanation": "Tella is a command suggestion tool, not a chatbot. Please describe the task you want to accomplish.", "severity": "warning", "severity_description": "Invalid input"}}
+4. NEVER engage in conversation or provide responses to questions
+5. Only respond to clear, direct statements of tasks (e.g., 'list files', 'check git status')
 
 User's request: {}
 
-If this IS a legitimate command request, respond with a JSON object (and ONLY the JSON, no markdown):
+If this IS a direct task request, respond with a JSON object (and ONLY the JSON, no markdown):
 {{
     "command": "the exact {} command to run",
     "description": "brief description of what this command does",
@@ -46,7 +46,7 @@ If this IS a legitimate command request, respond with a JSON object (and ONLY th
     "severity_description": "risk level explanation"
 }}
 
-If this is NOT a command request, respond with the ERROR format above."#,
+If this is NOT a direct task request, respond with the ERROR format above."#,
         shell_name, shell_name, question, shell_type
     );
 
@@ -55,14 +55,14 @@ If this is NOT a command request, respond with the ERROR format above."#,
         "messages": [
             {
                 "role": "system",
-                "content": format!("You are a strict {} command suggestion tool. ONLY respond to command requests. REJECT any conversational input, small talk, or non-command questions. Always respond with valid JSON only.", shell_name)
+                "content": format!("You are a strict {} command suggestion tool. ONLY respond to direct task statements requesting commands. REJECT any questions, conversational input, small talk, or indirect queries. Always respond with valid JSON only.", shell_name)
             },
             {
                 "role": "user",
                 "content": prompt
             }
         ],
-        "temperature": 0.7,
+        "temperature": 0.4,
     });
 
     let response = client
