@@ -1,0 +1,45 @@
+# Build directories - IMPORTANT
+target/*
+target
+!target/release/tella.exe
+Cargo.lock
+build/
+dist/
+
+# Development files
+.git
+.gitignore
+.env
+.env.example
+.github
+.editorconfig
+.vscode/
+.idea/
+*.code-workspace
+
+# Temporary files
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.log
+
+# Test files
+tests/
+test/
+
+# Documentation
+CHANGES.md
+RELEASE_READY.md
+postinstall.js
+
+# Node modules
+node_modules/
+npm-debug.log
+package-lock.json
+
+# CI/CD
+.travis.yml
+.github/
+azure-pipelines.yml

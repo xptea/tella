@@ -1,0 +1,52 @@
+{
+  "name": "tella",
+  "version": "0.1.2",
+  "description": "AI-powered Windows PowerShell command suggestion tool. Ask questions and get safe, intelligent command suggestions.",
+  "main": "target/release/tella.exe",
+  "bin": {
+    "tella": "target/release/tella.exe"
+  },
+  "files": [
+    "target/release/tella.exe",
+    "Cargo.toml",
+    "Cargo.lock",
+    "src/",
+    "README.md",
+    "NPM_README.md",
+    "LICENSE",
+    ".npmignore"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xptea/tella.git"
+  },
+  "keywords": [
+    "cli",
+    "command-line",
+    "powershell",
+    "ai",
+    "cerebras",
+    "assistant"
+  ],
+  "author": "Seth",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "scripts": {
+    "build": "cargo build --release",
+    "install": "cargo build --release && npm run setup-path",
+    "setup-path": "echo 'Add C:\\Users\\$USERNAME\\AppData\\Roaming\\npm\\tella to your PATH'",
+    "test": "cargo test",
+    "clean": "cargo clean"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ]
+}
