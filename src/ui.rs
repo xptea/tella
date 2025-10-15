@@ -29,21 +29,17 @@ impl MenuSelector {
         let mut selected = 0;
         let option_count = self.options.len();
 
-        // Enable raw mode
         enable_raw_mode()?;
         let mut stdout = io::stdout();
-        execute!(stdout, Hide)?; // Hide cursor
+        execute!(stdout, Hide)?;
 
-        // Give a small delay to ensure we don't catch residual input
         thread::sleep(Duration::from_millis(200));
 
-        // Clear any pending input
         while event::poll(Duration::from_millis(0))? {
             let _ = event::read();
         }
 
         let result = loop {
-            // Display options
             print!("\r");
             for (i, (title, _)) in self.options.iter().enumerate() {
                 if i > 0 {
@@ -57,24 +53,19 @@ impl MenuSelector {
             }
             io::stdout().flush()?;
 
-            // Read keyboard input with a longer timeout
             if let Ok(true) = event::poll(Duration::from_millis(50)) {
                 if let Ok(Event::Key(KeyEvent { code, .. })) = event::read() {
                     match code {
                         KeyCode::Left | KeyCode::Up => {
                             selected = if selected == 0 { option_count - 1 } else { selected - 1 };
-                            // Debounce: wait before processing next input
                             thread::sleep(Duration::from_millis(150));
-                            // Clear any buffered input
                             while event::poll(Duration::from_millis(0))? {
                                 let _ = event::read();
                             }
                         }
                         KeyCode::Right | KeyCode::Down => {
                             selected = (selected + 1) % option_count;
-                            // Debounce: wait before processing next input
                             thread::sleep(Duration::from_millis(150));
-                            // Clear any buffered input
                             while event::poll(Duration::from_millis(0))? {
                                 let _ = event::read();
                             }
@@ -100,10 +91,9 @@ impl MenuSelector {
             }
         };
 
-        // Show cursor again and disable raw mode
         execute!(stdout, Show)?;
         disable_raw_mode()?;
-        println!(); // New line
+        println!();
         result
     }
 }

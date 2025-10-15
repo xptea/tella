@@ -7,10 +7,8 @@ use std::thread;
 use std::time::Duration;
 
 pub async fn handle_ask_command(question: &str) -> io::Result<()> {
-    // Show animated dots while fetching
     let dot_handle = print_animated_dots();
 
-    // Get command suggestion from API
     let suggestion = match get_command_suggestion(question).await {
         Ok(cmd) => cmd,
         Err(e) => {
@@ -19,20 +17,16 @@ pub async fn handle_ask_command(question: &str) -> io::Result<()> {
         }
     };
 
-    // Stop the dot animation
     drop(dot_handle);
-    // Clear the dots line completely
     print!("\r                    \r");
     io::Write::flush(&mut io::stdout())?;
 
-    // Check if this is an error response (not a valid command request)
     if suggestion.command == "ERROR" {
         eprintln!("{}", suggestion.description.red());
         eprintln!("{}", suggestion.explanation.yellow());
         return Ok(());
     }
 
-    // Display the suggestion compactly
     println!("{}", suggestion.command.bold().yellow());
     
     let severity_display = match suggestion.severity.as_str() {
@@ -44,7 +38,6 @@ pub async fn handle_ask_command(question: &str) -> io::Result<()> {
     
     println!("{}", format!("{} - {}", severity_display, suggestion.description).dimmed());
 
-    // Show simple menu
     println!();
     loop {
         let selected = MenuSelector::new()
@@ -55,7 +48,6 @@ pub async fn handle_ask_command(question: &str) -> io::Result<()> {
 
         match selected {
             0 => {
-                // Accept and run
                 match command_executor::execute_command(&suggestion.command).await {
                     Ok(output) => {
                         if !output.trim().is_empty() {
@@ -71,12 +63,10 @@ pub async fn handle_ask_command(question: &str) -> io::Result<()> {
                 break;
             }
             1 => {
-                // Explain more
                 println!("\n{}", suggestion.explanation);
                 println!();
             }
             2 => {
-                // Stop
                 println!("{}", "Goodbye!".yellow());
                 break;
             }
@@ -101,7 +91,6 @@ fn print_animated_dots() -> std::sync::Arc<std::sync::atomic::AtomicBool> {
             thread::sleep(Duration::from_millis(300));
             count += 1;
 
-            // Keep cycling through dots
             if count > 10 {
                 print!("\r");
                 io::Write::flush(&mut io::stdout()).ok();

@@ -13,15 +13,12 @@ use std::io;
 #[command(name = "tella")]
 #[command(about = "Ask about commands - get the best command for your task", long_about = None)]
 struct Args {
-    /// Configure API key
     #[arg(long, action)]
     settings: bool,
 
-    /// Upgrade to the latest version
     #[arg(long, action)]
     upgrade: bool,
 
-    /// Your question - pass everything after 'tella' as the question
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     question: Vec<String>,
 }
@@ -32,7 +29,6 @@ async fn main() -> io::Result<()> {
 
     let args = Args::parse();
 
-    // Handle upgrade flag
     if args.upgrade {
         match updater::perform_upgrade().await {
             Ok(_) => return Ok(()),
@@ -43,7 +39,6 @@ async fn main() -> io::Result<()> {
         }
     }
 
-    // Handle settings flag
     if args.settings {
         match settings::Settings::interactive_setup() {
             Ok(_) => return Ok(()),
@@ -54,18 +49,15 @@ async fn main() -> io::Result<()> {
         }
     }
 
-    // Check for updates (run in background, don't block)
     tokio::spawn(async {
         updater::check_for_updates().await;
     });
 
-    // Handle question
     if !args.question.is_empty() {
         let question = args.question.join(" ");
         cli::handle_ask_command(&question).await?;
     } else {
-        // If no args provided, show help
-        println!("{}", "tella - Command Assistant".bold().cyan());
+        println!("{}", "tella - Command Assistant v0.1.5".bold().cyan());
         println!("{}", "━".repeat(50));
         println!("\n{}", "Usage:".bold());
         println!("  {} tella your question here", "$".cyan());

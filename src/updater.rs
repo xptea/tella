@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use colored::*;
+use crate::ui::MenuSelector;
 
 #[derive(Deserialize, Debug)]
 struct NpmPackageInfo {
@@ -23,7 +24,6 @@ pub async fn check_for_updates() {
             }
         }
         Err(_) => {
-            // Silently fail - don't interrupt user experience for network issues
         }
     }
 }
@@ -87,6 +87,23 @@ pub async fn perform_upgrade() -> Result<(), String> {
         return Ok(());
     }
 
+    println!("Which package manager did you use to install tella?");
+    let pm = MenuSelector::new()
+        .add_option("npm", "")
+        .add_option("bun", "")
+        .add_option("yarn", "")
+        .add_option("pnpm", "")
+        .show()
+        .map_err(|e| format!("Menu error: {}", e))?;
+
+    let install_cmd = match pm {
+        0 => "npm install -g tella",
+        1 => "bun install -g tella",
+        2 => "yarn global add tella",
+        3 => "pnpm add -g tella",
+        _ => "npm install -g tella",
+    };
+
     println!(
         "{}",
         format!(
@@ -100,7 +117,7 @@ pub async fn perform_upgrade() -> Result<(), String> {
     {
         use std::process::Command;
         Command::new("powershell")
-            .args(&["-Command", "npm install -g tella"])
+            .args(&["-Command", install_cmd])
             .spawn()
             .map_err(|e| format!("Failed to run upgrade: {}", e))?
             .wait()
@@ -111,7 +128,7 @@ pub async fn perform_upgrade() -> Result<(), String> {
     {
         use std::process::Command;
         Command::new("bash")
-            .args(&["-c", "npm install -g tella"])
+            .args(&["-c", install_cmd])
             .spawn()
             .map_err(|e| format!("Failed to run upgrade: {}", e))?
             .wait()
@@ -122,7 +139,7 @@ pub async fn perform_upgrade() -> Result<(), String> {
     {
         use std::process::Command;
         Command::new("bash")
-            .args(&["-c", "npm install -g tella"])
+            .args(&["-c", install_cmd])
             .spawn()
             .map_err(|e| format!("Failed to run upgrade: {}", e))?
             .wait()

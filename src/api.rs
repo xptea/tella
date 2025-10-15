@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::settings::Settings;
+use std::env;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandSuggestion {
@@ -11,17 +12,24 @@ pub struct CommandSuggestion {
 }
 
 pub async fn get_command_suggestion(question: &str) -> Result<CommandSuggestion, String> {
-    // Get API key from settings
     let settings = Settings::load()?;
     let api_key = &settings.cerebras_api_key;
+
+    let os = env::consts::OS;
+    let (shell_name, shell_type) = match os {
+        "windows" => ("Windows PowerShell", "PowerShell"),
+        "linux" => ("Linux bash", "bash"),
+        "macos" => ("macOS shell", "shell"),
+        _ => ("Unix shell", "shell"),
+    };
 
     let client = reqwest::Client::new();
 
     let prompt = format!(
-        r#"You are ONLY a Windows PowerShell command suggestion tool. You MUST ONLY respond to legitimate command requests.
+        r#"You are ONLY a {} command suggestion tool. You MUST ONLY respond to legitimate command requests.
 
 CRITICAL RULES:
-1. You MUST provide ONLY actual Windows PowerShell commands to accomplish specific tasks
+1. You MUST provide ONLY actual {} commands to accomplish specific tasks
 2. You MUST REJECT any non-command requests (small talk, questions, conversations, etc.)
 3. If the user is not asking for a command, respond with: {{"command": "ERROR", "description": "This is not a command request. Please ask about a specific task you need help with.", "explanation": "Tella is a command suggestion tool, not a chatbot. Please ask what command you need to run.", "severity": "warning", "severity_description": "Invalid input"}}
 4. NEVER engage in conversation or provide non-command responses
@@ -31,7 +39,7 @@ User's request: {}
 
 If this IS a legitimate command request, respond with a JSON object (and ONLY the JSON, no markdown):
 {{
-    "command": "the exact PowerShell command to run",
+    "command": "the exact {} command to run",
     "description": "brief description of what this command does",
     "explanation": "detailed explanation",
     "severity": "one of: safe, warning, dangerous",
@@ -39,7 +47,7 @@ If this IS a legitimate command request, respond with a JSON object (and ONLY th
 }}
 
 If this is NOT a command request, respond with the ERROR format above."#,
-        question
+        shell_name, shell_name, question, shell_type
     );
 
     let request_body = serde_json::json!({
@@ -47,7 +55,7 @@ If this is NOT a command request, respond with the ERROR format above."#,
         "messages": [
             {
                 "role": "system",
-                "content": "You are a strict Windows PowerShell command suggestion tool. ONLY respond to command requests. REJECT any conversational input, small talk, or non-command questions. Always respond with valid JSON only."
+                "content": format!("You are a strict {} command suggestion tool. ONLY respond to command requests. REJECT any conversational input, small talk, or non-command questions. Always respond with valid JSON only.", shell_name)
             },
             {
                 "role": "user",
@@ -73,7 +81,6 @@ If this is NOT a command request, respond with the ERROR format above."#,
     let response_data: serde_json::Value = serde_json::from_str(&response_text)
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
-    // Extract the assistant's message
     let content = response_data
         .get("choices")
         .and_then(|c| c.get(0))
@@ -82,12 +89,10 @@ If this is NOT a command request, respond with the ERROR format above."#,
         .and_then(|c| c.as_str())
         .ok_or("Invalid response format from API")?;
 
-    // Try to parse the JSON from the content
     let parsed: CommandSuggestion = {
         let mut result = serde_json::from_str(content);
         
         if result.is_err() {
-            // Try to extract JSON if it's embedded in markdown code blocks
             if let Some(start) = content.find('{') {
                 if let Some(end) = content.rfind('}') {
                     if end > start {

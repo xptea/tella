@@ -49,7 +49,6 @@ impl Settings {
         let settings_dir = Self::get_settings_path();
         let settings_file = Self::get_settings_file();
 
-        // Create directory if it doesn't exist
         fs::create_dir_all(&settings_dir)
             .map_err(|e| format!("Failed to create settings directory: {}", e))?;
 
