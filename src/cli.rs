@@ -17,11 +17,17 @@ pub async fn handle_ask_command(question: &str) -> io::Result<()> {
         }
     };
 
-    drop(dot_handle);
+    // let elapsed = start.elapsed();
+    // eprintln!("🔍 Debug: API call took {:?}", elapsed);
+
+    // signal spinner thread to stop
+    dot_handle.store(true, std::sync::atomic::Ordering::SeqCst);
+    // give spinner a moment to clear the line
+    thread::sleep(Duration::from_millis(50));
     print!("\r                    \r");
     io::Write::flush(&mut io::stdout())?;
 
-    if suggestion.command == "ERROR" {
+    if suggestion.command == "ERROR" || suggestion.command == "no command returned" {
         eprintln!("{}", suggestion.description.red());
         eprintln!("{}", suggestion.explanation.yellow());
         return Ok(());
@@ -84,19 +90,16 @@ fn print_animated_dots() -> std::sync::Arc<std::sync::atomic::AtomicBool> {
     let stop_flag_clone = stop_flag.clone();
 
     std::thread::spawn(move || {
-        let mut count = 0;
+        let spinner = ['|', '/', '-', '\\'];
+        let mut i = 0;
         while !stop_flag_clone.load(std::sync::atomic::Ordering::Relaxed) {
-            print!(".");
+            print!("\r{} Thinking...", spinner[i]);
             io::Write::flush(&mut io::stdout()).ok();
-            thread::sleep(Duration::from_millis(300));
-            count += 1;
-
-            if count > 10 {
-                print!("\r");
-                io::Write::flush(&mut io::stdout()).ok();
-                count = 0;
-            }
+            thread::sleep(Duration::from_millis(100));
+            i = (i + 1) % spinner.len();
         }
+        print!("\r                    \r"); // Clear the line
+        io::Write::flush(&mut io::stdout()).ok();
     });
 
     stop_flag

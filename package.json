@@ -1,6 +1,6 @@
 {
   "name": "tella",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "description": "AI-powered command suggestion tool. Ask questions and get safe, intelligent command suggestions.",
   "main": "bin/tella.js",
   "bin": {

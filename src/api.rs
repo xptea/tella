@@ -16,53 +16,45 @@ pub async fn get_command_suggestion(question: &str) -> Result<CommandSuggestion,
     let api_key = &settings.cerebras_api_key;
 
     let os = env::consts::OS;
-    let (shell_name, shell_type) = match os {
-        "windows" => ("Windows PowerShell", "PowerShell"),
-        "linux" => ("Linux bash", "bash"),
-        "macos" => ("macOS shell", "shell"),
-        _ => ("Unix shell", "shell"),
+    let shell_type = match os {
+        "windows" => "PowerShell",
+        "linux" => "bash",
+        "macos" => "shell",
+        _ => "shell",
     };
 
     let client = reqwest::Client::new();
 
     let prompt = format!(
-        r#"You are ONLY a {} command suggestion tool. You MUST ONLY respond to direct command requests.
+        r#"Suggest the best {} command for: {}
 
-CRITICAL RULES:
-1. You MUST provide ONLY actual {} commands to accomplish specific tasks
-2. You MUST REJECT any requests phrased as questions, small talk, conversations, or indirect queries (e.g., 'can you', 'how do I', 'what is')
-3. If the user is not stating a direct task to accomplish, respond with: {{"command": "ERROR", "description": "This appears to be a question or conversational input. Please state the task you need help with directly.", "explanation": "Tella is a command suggestion tool, not a chatbot. Please describe the task you want to accomplish.", "severity": "warning", "severity_description": "Invalid input"}}
-4. NEVER engage in conversation or provide responses to questions
-5. Only respond to clear, direct statements of tasks (e.g., 'list files', 'check git status')
-
-User's request: {}
-
-If this IS a direct task request, respond with a JSON object (and ONLY the JSON, no markdown):
+If it's a task, respond with JSON:
 {{
-    "command": "the exact {} command to run",
-    "description": "brief description of what this command does",
-    "explanation": "detailed explanation",
-    "severity": "one of: safe, warning, dangerous",
-    "severity_description": "risk level explanation"
+    "command": "exact command",
+    "description": "brief desc",
+    "explanation": "details",
+    "severity": "safe|warning|dangerous",
+    "severity_description": "risk"
 }}
 
-If this is NOT a direct task request, respond with the ERROR format above."#,
-        shell_name, shell_name, question, shell_type
+If not a task, use "no command returned"."#,
+        shell_type, question
     );
 
     let request_body = serde_json::json!({
-        "model": "gpt-oss-120b",
+        "model": "llama3.3-70b",
         "messages": [
             {
                 "role": "system",
-                "content": format!("You are a strict {} command suggestion tool. ONLY respond to direct task statements requesting commands. REJECT any questions, conversational input, small talk, or indirect queries. Always respond with valid JSON only.", shell_name)
+                "content": "You are a command suggestion tool. Suggest commands or 'no command returned'. Always JSON."
             },
             {
                 "role": "user",
                 "content": prompt
             }
         ],
-        "temperature": 0.4,
+        "temperature": 0.3,
+        "max_tokens": 500
     });
 
     let response = client
@@ -78,8 +70,18 @@ If this is NOT a direct task request, respond with the ERROR format above."#,
         .await
         .map_err(|e| format!("Failed to read response: {}", e))?;
 
+    // eprintln!("🔍 Debug: Full API response: {}", response_text);
+
     let response_data: serde_json::Value = serde_json::from_str(&response_text)
         .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+    // Check for API error responses
+    if let Some(error_type) = response_data.get("type").and_then(|t| t.as_str()) {
+        if error_type == "too_many_requests_error" {
+            return Err(response_data.get("message").and_then(|m| m.as_str()).unwrap_or("API rate limit exceeded").to_string());
+        }
+        // Add other error types if needed
+    }
 
     let content = response_data
         .get("choices")
@@ -88,6 +90,8 @@ If this is NOT a direct task request, respond with the ERROR format above."#,
         .and_then(|m| m.get("content"))
         .and_then(|c| c.as_str())
         .ok_or("Invalid response format from API")?;
+
+    // eprintln!("🔍 Debug: API raw response: {}", content);
 
     let parsed: CommandSuggestion = {
         let mut result = serde_json::from_str(content);
