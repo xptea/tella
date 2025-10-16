@@ -1,12 +1,14 @@
 {
   "name": "tella",
-  "version": "0.1.6",
+  "version": "0.1.18",
   "description": "AI-powered command suggestion tool. Ask questions and get safe, intelligent command suggestions.",
-  "main": "target/release/tella",
+  "main": "bin/tella.js",
   "bin": {
-    "tella": "target/release/tella"
+    "tella": "bin/tella.js"
   },
   "files": [
+    "bin/",
+    "postinstall.js",
     "target/release/tella",
     "target/release/tella.exe",
     "Cargo.toml",
@@ -35,9 +37,8 @@
     "node": ">=14.0.0"
   },
   "scripts": {
+    "postinstall": "node postinstall.js",
     "build": "cargo build --release",
-    "install": "cargo build --release && npm run setup-path",
-    "setup-path": "echo 'Add the npm global bin directory to your PATH (usually ~/.npm-global/bin or /usr/local/bin)'",
     "test": "cargo test",
     "clean": "cargo clean"
   },
@@ -46,7 +47,8 @@
   },
   "os": [
     "win32",
-    "darwin"
+    "darwin",
+    "linux"
   ],
   "cpu": [
     "x64",
