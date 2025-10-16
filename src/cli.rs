@@ -1,6 +1,7 @@
 use crate::api::get_command_suggestion;
 use crate::ui::MenuSelector;
 use crate::command_executor;
+use crate::settings::Settings;
 use colored::*;
 use std::io;
 use std::thread;
@@ -33,24 +34,48 @@ pub async fn handle_ask_command(question: &str) -> io::Result<()> {
         return Ok(());
     }
 
-    println!("{}", suggestion.command.bold().yellow());
+    // Load settings to get output preferences
+    let settings = Settings::load().ok();
+    let output_settings = settings.as_ref().map(|s| &s.output_settings);
+
+    // Display command if enabled
+    if output_settings.map_or(true, |o| o.show_command) {
+        println!("{}", suggestion.command.bold().yellow());
+    }
     
-    let severity_display = match suggestion.severity.as_str() {
-        "safe" => "🟢 SAFE".green(),
-        "warning" => "🟡 WARNING".yellow(),
-        "dangerous" => "🔴 DANGEROUS".red(),
-        _ => "⚪ UNKNOWN".normal(),
-    };
-    
-    println!("{}", format!("{} - {}", severity_display, suggestion.description).dimmed());
+    // Display severity and description if enabled
+    if output_settings.map_or(true, |o| o.show_severity || o.show_description) {
+        let severity_display = match suggestion.severity.as_str() {
+            "safe" => "🟢 SAFE".green(),
+            "warning" => "🟡 WARNING".yellow(),
+            "dangerous" => "🔴 DANGEROUS".red(),
+            _ => "⚪ UNKNOWN".normal(),
+        };
+        
+        if output_settings.map_or(true, |o| o.show_severity) {
+            if output_settings.map_or(true, |o| o.show_description) {
+                println!("{}", format!("{} - {}", severity_display, suggestion.description).dimmed());
+            } else {
+                println!("{}", severity_display);
+            }
+        } else if output_settings.map_or(true, |o| o.show_description) {
+            println!("{}", suggestion.description.dimmed());
+        }
+    }
 
     println!();
     loop {
-        let selected = MenuSelector::new()
-            .add_option("Run", "")
-            .add_option("Explain", "")
-            .add_option("Stop", "")
-            .show()?;
+        let mut menu = MenuSelector::new()
+            .add_option("Run", "");
+        
+        // Only add Explain option if explanation is enabled
+        let explain_enabled = output_settings.map_or(true, |o| o.show_explanation);
+        if explain_enabled {
+            menu = menu.add_option("Explain", "");
+        }
+        
+        let menu = menu.add_option("Stop", "");
+        let selected = menu.show()?;
 
         match selected {
             0 => {
@@ -68,15 +93,13 @@ pub async fn handle_ask_command(question: &str) -> io::Result<()> {
                 }
                 break;
             }
-            1 => {
+            1 if explain_enabled => {
+                // Show explanation
                 println!("\n{}", suggestion.explanation);
                 println!();
             }
-            2 => {
-                println!("{}", "Goodbye!".yellow());
-                break;
-            }
             _ => {
+                println!("{}", "Goodbye!".yellow());
                 break;
             }
         }

@@ -40,7 +40,7 @@ async fn main() -> io::Result<()> {
     }
 
     if args.settings {
-        match settings::Settings::interactive_setup() {
+        match settings::Settings::interactive_setup().await {
             Ok(_) => return Ok(()),
             Err(e) => {
                 eprintln!("{}", format!("❌ Error: {}", e).red());
@@ -57,7 +57,7 @@ async fn main() -> io::Result<()> {
         let question = args.question.join(" ");
         cli::handle_ask_command(&question).await?;
     } else {
-        println!("{}", "tella - Command Assistant v0.1.19".bold().cyan());
+        println!("{}", "tella - Command Assistant v0.1.20".bold().cyan());
         println!("{}", "━".repeat(50));
         println!("\n{}", "Usage:".bold());
         println!("  {} tella your question here", "$".cyan());
