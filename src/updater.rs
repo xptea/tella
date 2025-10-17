@@ -1,6 +1,5 @@
 use serde::Deserialize;
 use colored::*;
-use crate::ui::MenuSelector;
 
 #[derive(Deserialize, Debug)]
 struct NpmPackageInfo {
@@ -69,7 +68,7 @@ fn print_update_notification(latest_version: &str) {
     println!("{}", "┌─────────────────────────────────────────┐".yellow());
     println!(
         "{}",
-        format!("│ {} Update available: {} → {} │", "📦".cyan(), CURRENT_VERSION, latest_version.green())
+        format!("  {} Update available: {} → {} ", "📦".cyan(), CURRENT_VERSION, latest_version.green())
             .yellow()
     );
     println!("{}", "│ Run: tella --upgrade                    │".yellow());
@@ -87,22 +86,7 @@ pub async fn perform_upgrade() -> Result<(), String> {
         return Ok(());
     }
 
-    println!("Which package manager did you use to install tella?");
-    let pm = MenuSelector::new()
-        .add_option("npm", "")
-        .add_option("bun", "")
-        .add_option("yarn", "")
-        .add_option("pnpm", "")
-        .show()
-        .map_err(|e| format!("Menu error: {}", e))?;
-
-    let install_cmd = match pm {
-        0 => "npm install -g tella",
-        1 => "bun install -g tella",
-        2 => "yarn global add tella",
-        3 => "pnpm add -g tella",
-        _ => "npm install -g tella",
-    };
+    let install_cmd = "npm add -g tella@latest";
 
     println!(
         "{}",
